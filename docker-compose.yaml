@@ -1,0 +1,20 @@
+version: '3.3'
+services:
+  db:
+    image: postgres:10.4
+    container_name: todo_db
+    environment:
+    - POSTGRES_DB=todo
+    - POSTGRES_USER=todo
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+    - POSTGRES_HOST=0.0.0.0
+    - POSTGRES_PORT=5432
+    ports:
+    - "5432:5432"
+  flyway:
+    image: boxfuse/flyway:5.2.4
+    command: -url=jdbc:postgresql://todo_db/todo -user=todo -password=${DB_PASSWORD} -connectRetries=60 migrate
+    volumes:
+    - ./migrations:/flyway/sql
+    depends_on:
+    - db
