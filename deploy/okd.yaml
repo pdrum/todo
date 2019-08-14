@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: todo-template
+objects:
+
+  # pg persistent volume claim
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: pg-pvc
+      labels:
+        app: pg
+    spec:
+      storageClassName: block-storage-standard
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  # todo postgres
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      annotations:
+        template.alpha.openshift.io/wait-for-ready: 'true'
+      name: todo-postgresql
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      strategy:
+        activeDeadlineSeconds: 21600
+        recreateParams:
+          timeoutSeconds: 600
+        resources: {}
+        type: Recreate
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: pg
+        spec:
+          containers:
+            - env:
+                - name: PGDATA
+                  value: /var/lib/postgresql/data/whereever
+                - name: POSTGRES_USER
+                  value: todo
+                - name: POSTGRES_PASSWORD
+                  value: secret
+                - name: POSTGRES_DATABASE
+                  value: todo
+              image: library/postgres
+              imagePullPolicy: IfNotPresent
+              name: todo-postgresql
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              resources:
+                limits:
+                  memory: 1Gi
+              securityContext:
+                capabilities: {}
+                privileged: false
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/lib/postgresql/data
+                  name: todo-postgresql-data
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: todo-postgresql-data
+              persistentVolumeClaim:
+                claimName: pg-pvc
+      updateStrategy:
+        type: OnDelete
+
+  # pg service
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: pg-service
+    spec:
+      ports:
+        - port: 5432
+          name: pg-port
+          targetPort: 5432
+          protocol: TCP
+      selector:
+        app: pg
+
+  # todo deployment
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: todo
+    spec:
+      replicas: 1
+      strategy:
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            app: todo
+        spec:
+          containers:
+            - name: todo
+              image: thejorge/todo
+              imagePullPolicy: Always
+              ports:
+              - containerPort: 1323
+                protocol: TCP
+              resources:
+                limits:
+                  memory: 1Gi
+              env:
+                - name: DB_HOST
+                  value: todopg
+                - name: DB_PASSWORD
+                  value: secret
+  # todo service
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: todo-service
+    spec:
+      ports:
+        - port: 1323
+          name: todo-port
+          targetPort: 1323
+          protocol: TCP
+      selector:
+        app: todo
+
+  # todo route
+  - kind: Route
+    apiVersion: v1
+    metadata:
+      labels:
+        app: todo
+      name: todo-route
+    spec:
+      port:
+        targetPort: 1323-tcp
+      to:
+        kind: Service
+        name: todo
+        weight: 100
+      wildcardPolicy: None
+
+
+
+

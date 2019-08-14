@@ -15,7 +15,8 @@ import (
 
 func main() {
 	pass := os.Getenv("DB_PASSWORD")
-	url := fmt.Sprintf("host=localhost port=5432 user=todo dbname=todo password=%s sslmode=disable", pass)
+	dbHost := os.Getenv("DB_HOST")
+	url := fmt.Sprintf("host=%s port=5432 user=todo dbname=todo password=%s sslmode=disable", dbHost, pass)
 	db, err := gorm.Open("postgres", url)
 	if err != nil {
 		panic(err)

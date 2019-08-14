@@ -10,16 +10,16 @@ Each to do item has an `id`, a `title` and a `done` field.
 In order to setup db and run migrations of project, run
 
 ```
-DB_PASSWORD=<some pass> docker-compose up
+DB_HOST=<HOST> DB_PASSWORD=<some pass> docker-compose up
 ```
 
 If you want to drop db for any reason run
 
 ```
-DB_PASSWORD=<some pass> docker-compose down
+DB_HOST=<HOST> DB_PASSWORD=<some pass> docker-compose down
 ```
 
 the in order to run the project run
 ```
-GO111MODULE=on DB_PASSWORD=<some pass> go run main.go
+GO111MODULE=on DB_PASSWORD=<some pass> DB_HOST=<HOST>  go run main.go
 ```
